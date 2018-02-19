@@ -3,18 +3,35 @@ package sample;
 import java.io.*;
 import java.util.*;
 
+//This class is from demo 4. It now counts the number of files and also can create TestFile classes upon reading every file.
+
 public class WordCounter {
+
     private Map<String,Integer> wordCounts;
 
     private int fileCount;
 
+
+
+    private List<TestFile> testFiles;
+
     public WordCounter() {
         wordCounts = new TreeMap<>();
+        testFiles = new ArrayList<>();
         fileCount = 0;
+    }
+
+
+    public Map<String, Integer> getWordCountsMap() {
+        return wordCounts;
     }
 
     public int getFileCount()
     {return fileCount;}
+
+    public List<TestFile> getTestFiles() {
+        return testFiles;
+    }
 
     public void processFile(File file) throws IOException {
         System.out.println("Processing " + file.getAbsolutePath() + "...");
@@ -36,7 +53,10 @@ public class WordCounter {
                 }
             }
 
+            //Increment file counter for some formulas.
            fileCount++;
+            //Create test file objects (for when testing)
+            testFiles.add(new TestFile(file.getName(),0, file.getAbsoluteFile().getParent(), file.getPath()));
         }
     }
 
@@ -61,8 +81,8 @@ public class WordCounter {
         }
     }
 
-    //Output number of words. Also set the frequency map
-    public Map<String, Integer> outputWordCounts(int minCount, File outFile)
+    //Output number of words.
+    public void outputWordCounts(int minCount, File outFile)
             throws IOException {
         System.out.println("Saving word counts to " + outFile.getAbsolutePath());
         System.out.println("# of words: " + wordCounts.keySet().size());
@@ -95,7 +115,6 @@ public class WordCounter {
             System.out.println("outFile.canWrite(): " + outFile.canWrite());
         }
 
-        return wordCounts;
     }
 
 

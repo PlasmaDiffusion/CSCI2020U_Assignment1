@@ -1,12 +1,19 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.GridPane;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -21,45 +28,107 @@ public class Main extends Application {
     private Map<String, Integer> trainSpamFrequency;
 
     //Maps for probability
-    private Map<String, Float> appearanceInSpamProbability;
-    private Map<String, Float> appearanceInHamProbability;
-    private Map<String, Float> spamProbability;
+    private Map<String, Double> appearanceInSpamProbability;
+    private Map<String, Double> appearanceInHamProbability;
+    private Map<String, Double> spamProbability;
 
     //File count for probability
     private int hamFileCount;
     private int spamFileCount;
 
+    //Stats after the test
+    private int correctGuesses = 0;
+    private int truePositives = 0;
+    private int falsePositives = 0;
+    private int trueNegatives = 0;
+    private float accuracy;
+    private float precision;
+
+
+    private File mainDirectory;
+    //Test file objects
+    private ObservableList<TestFile> testFiles;
 
     //Table stuff
-    //private TableView<StudentRecord> words;
+    private TableView<TestFile> testTable;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
         primaryStage.setTitle("Assignment 1");
-        primaryStage.setScene(new Scene(root, 300, 275));
-        primaryStage.show();
-
-        /*
-        //Table stuff
-        TableColumn<Integer, String> gCol = new TableColumn<>("Grade");
-        gCol.setPrefWidth(100);
-        gCol.setCellValueFactory(new PropertyValueFactory<>("grade"));
 
 
 
+        testFiles = FXCollections.observableArrayList();
+
+        //First choose the directory
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setInitialDirectory(new File("."));
+        mainDirectory = directoryChooser.showDialog(primaryStage);
 
 
-        students = new TableView<>();
-        students.getColumns().add(idCol);
-        */
-
+        //Train and test
         trainingPhase();
 
-        //String testSpam[] = {"S", "s"};
-        //String testHam[] = {"S", "s"};
+        testingPhase();
 
-        //Testing phase
+
+
+        //Now make a table
+
+        //Filename
+        TableColumn<TestFile, String> fileCol = new TableColumn<>("File");
+        fileCol.setPrefWidth(400);
+        fileCol.setCellValueFactory(new PropertyValueFactory<>("filename"));
+
+        //Probability
+        TableColumn<TestFile, String> probCol = new TableColumn<>("Spam Probability");
+        probCol.setPrefWidth(100);
+        probCol.setCellValueFactory(new PropertyValueFactory<>("probabilityString"));
+
+        //Actual class
+        TableColumn<TestFile, String> classCol = new TableColumn<>("Actual Class");
+        classCol.setPrefWidth(100);
+        classCol.setCellValueFactory(new PropertyValueFactory<>("actualClass"));
+
+        testTable = new TableView<>();
+        testTable.getColumns().add(fileCol);
+        testTable.getColumns().add(classCol);
+        testTable.getColumns().add(probCol);
+
+        //Gridpane for stats
+        GridPane gridPane = new GridPane();
+
+        gridPane.setPadding(new Insets(10, 10, 10, 10));
+
+
+        gridPane.setHgap(5);
+        gridPane.setVgap(5);
+
+        //Accuracy label
+        Label nameText = new Label("Accuracy: ");
+        Label accuracyText = new Label(Float.toString(accuracy));
+
+
+        gridPane.add(testTable, 0, 0);
+        gridPane.add(nameText, 0, 1);
+        gridPane.add(accuracyText, 1, 1);
+
+
+        //Precision label
+        Label nameText2 = new Label("Precision: ");
+        Label precisionText = new Label(Float.toString(precision));
+
+        gridPane.add(nameText2, 0, 2);
+        gridPane.add(precisionText, 1, 2);
+
+        primaryStage.setScene(new Scene(gridPane, 800, 675));
+        primaryStage.show();
+
+
+
+        testTable.setItems(testFiles);
+
     }
 
     public void trainingPhase()
@@ -67,14 +136,14 @@ public class Main extends Application {
         trainHamFrequency = new TreeMap<String, Integer>();
         trainSpamFrequency = new TreeMap<String, Integer>();
 
-        appearanceInSpamProbability = new TreeMap<String, Float>();
-        appearanceInHamProbability= new TreeMap<String, Float>();
-        spamProbability= new TreeMap<String, Float>();
+        appearanceInSpamProbability = new TreeMap<String, Double>();
+        appearanceInHamProbability= new TreeMap<String, Double>();
+        spamProbability= new TreeMap<String, Double>();
 
         //Make directories
-        String trainingHam[] = {"src/sample/data/train/ham", "src/sample/outputFiles/train/ham.txt"};
-        String trainingHam2[] = {"src/sample/data/train/ham2", "src/sample/outputFiles/train/ham2.txt"};
-        String trainingSpam[] = {"src/sample/data/train/spam", "src/sample/outputFiles/train/spam.txt"};
+        String trainingHam = mainDirectory+"/train/ham";
+        String trainingHam2 = mainDirectory+"/train/ham2";
+        String trainingSpam = mainDirectory+"/train/spam";
 
 
         //Start training by counting the number of words ------------------------------------------------
@@ -84,7 +153,6 @@ public class Main extends Application {
 
         trainSpamFrequency = countWords(trainingSpam, 1);
 
-        System.out.println(trainHamFrequency.get("Save"));
 
 
         //Calculate the probability of every word
@@ -94,14 +162,12 @@ public class Main extends Application {
         //Calculate actual spam probability
         spamProbability = calculateSpamProbability();
 
-        System.out.println("Save probability");
-        System.out.println(spamProbability.get("Save"));
 
     }
 
-    public Map<String, Float> calculateAppearanceProbability(Map<String, Integer> map, int fileCount)
+    public Map<String, Double> calculateAppearanceProbability(Map<String, Integer> map, int fileCount)
     {
-        Map<String, Float> newProbabilityMap;
+        Map<String, Double> newProbabilityMap;
 
         newProbabilityMap = new TreeMap<>();
 
@@ -114,7 +180,7 @@ public class Main extends Application {
 
 
             int appearances = map.get(key);
-            float probability = (float)appearances / (float)fileCount;
+            double probability = (double)appearances / (double)fileCount;
 
             //Add new probability
             newProbabilityMap.put(key, probability);
@@ -123,9 +189,9 @@ public class Main extends Application {
         return newProbabilityMap;
     }
 
-    public Map<String, Float> calculateSpamProbability()
+    public Map<String, Double> calculateSpamProbability()
     {
-        Map<String, Float> newProbabilityMap;
+        Map<String, Double> newProbabilityMap;
 
         newProbabilityMap = new TreeMap<>();
 
@@ -136,43 +202,94 @@ public class Main extends Application {
         while (keyIterator.hasNext()) {
             String key = keyIterator.next();
 
-            float probability = 1.0f;
+            double probability = 0.999;
 
-            //Check if ham map also has the key, if so calculate probability.
+            //Check if ham map also has the key, if so calculate probability. If not probability is 1.
             if (appearanceInHamProbability.containsKey(key)) {
 
                 probability = appearanceInSpamProbability.get(key) / (appearanceInHamProbability.get(key) + appearanceInSpamProbability.get(key));
             }
 
+            if (probability == 1.0) probability = 0.999;
+
             //Add new probability
             newProbabilityMap.put(key, probability);
+        }
+
+
+        //Next iterate through all ham words that there are no spam words for.
+
+        keys = appearanceInHamProbability.keySet();
+        keyIterator = keys.iterator();
+
+        while (keyIterator.hasNext()) {
+            String key = keyIterator.next();
+
+            //If there is no spam for the word, then its got a spam probability of ~0.
+            if (!appearanceInSpamProbability.containsKey(key)) {
+
+
+                //Add new probability
+                newProbabilityMap.put(key, 0.00001);
+
+            }
+
         }
 
         return newProbabilityMap;
     }
 
+    public void testingPhase()
+    {
+        //Make directories
+        String testingHam = mainDirectory+"/test/ham";
+        String testingSpam = mainDirectory+"/test/spam";
+
+        countWords(testingHam, 2);
+        countWords(testingSpam, 3);
+
+        //Determine the probability of every file. Record how correct the program is as well.
+        for(int i = 0; i < testFiles.size(); i++)
+        {
+            TestFile t = testFiles.get(i);
+
+            if(t.determineSpamProbability(spamProbability)) //Estimated correctly
+            {
+                correctGuesses++;
+
+                if (t.getActualClass() == "Ham")trueNegatives++;
+
+                if (t.getActualClass() == "Spam") truePositives++;
+
+            }
+            else //Estimated incorrectly. See if it was a false positive.
+            {
+                if (t.getActualClass() == "Ham")falsePositives++;
+            }
+        }
+
+        //Calculate accuracy and precision
+        accuracy = (float)correctGuesses/(float)testFiles.size();
+        precision = (float)truePositives/(float)(truePositives+falsePositives);
+    }
+
+
     public static void main(String[] args) {
-
-
 
         launch(args);
 
     }
 
-    public Map<String, Integer> countWords(String[] args, int category)
+    //Reads all files in a directory. Also can return a map
+    public Map<String, Integer> countWords(String path, int category)
     {
 
     Map<String, Integer> frequencyMap = new TreeMap<>();
 
-        //Main for Word Counter
-        if (args.length < 2) {
-            System.err.println("Usage: java WordCounter <dir> <outfile>");
-            System.exit(0);
-        }
+
 
         WordCounter wordCounter = new WordCounter();
-        File dataDir = new File(args[0]);
-        File outFile = new File(args[1]);
+        File dataDir = new File(path);
 
         //Try to read all the files of the given directory.
         try {
@@ -182,12 +299,32 @@ public class Main extends Application {
             System.out.println("Number of files: ");
             System.out.println(wordCounter.getFileCount());
 
+            //Category 0-1 gets the file count for training. Category 2-3 gets a list of test file classes
             if(category == 0) hamFileCount += wordCounter.getFileCount();
             else if (category == 1) spamFileCount += wordCounter.getFileCount();
+            else if (category >= 2) {
+
+                List<TestFile> newTestFiles = FXCollections.observableArrayList();
+                newTestFiles = wordCounter.getTestFiles();
+
+                //Add on each test file to the programs main list. Also set which ones are Ham and Spam.
+                for (int i = 0; i < newTestFiles.size(); i++)
+                {
+                    testFiles.add(newTestFiles.get(i));
 
 
-            //Save the map
-            frequencyMap = wordCounter.outputWordCounts(2, outFile);
+                    if (category == 2)
+                        testFiles.get(testFiles.size() -1).setActualClass("Ham");
+                    else if (category == 3)
+                        testFiles.get(testFiles.size() -1).setActualClass("Spam");
+                }
+
+            }
+
+            //Save the map if the program is training
+            if (category < 2) {
+                frequencyMap = wordCounter.getWordCountsMap();
+            }
 
         } catch (FileNotFoundException e) {
             System.err.println("Invalid input dir: " + dataDir.getAbsolutePath());
