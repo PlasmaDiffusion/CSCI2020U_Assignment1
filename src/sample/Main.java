@@ -83,7 +83,7 @@ public class Main extends Application {
 
         //Probability
         TableColumn<TestFile, String> probCol = new TableColumn<>("Spam Probability");
-        probCol.setPrefWidth(100);
+        probCol.setPrefWidth(200);
         probCol.setCellValueFactory(new PropertyValueFactory<>("probabilityString"));
 
         //Actual class
@@ -146,10 +146,9 @@ public class Main extends Application {
         String trainingSpam = mainDirectory+"/train/spam";
 
 
-        //Start training by counting the number of words ------------------------------------------------
+        //Start training by counting the number of words
         trainHamFrequency = countWords(trainingHam, 0);
-        trainHamFrequency.putAll(
-                trainHamFrequency = countWords(trainingHam2, 0));
+        trainHamFrequency = countWords(trainingHam2, -1); //<--- The previous map is added onto this new one
 
         trainSpamFrequency = countWords(trainingSpam, 1);
 
@@ -180,6 +179,8 @@ public class Main extends Application {
 
 
             int appearances = map.get(key);
+
+
             double probability = (double)appearances / (double)fileCount;
 
             //Add new probability
@@ -204,37 +205,26 @@ public class Main extends Application {
 
             double probability = 0.999;
 
-            //Check if ham map also has the key, if so calculate probability. If not probability is 1.
+            //Check if ham map also has the key, if so calculate probability. If not probability is ~1. (An exact number of 1 would cause a log error later.)
             if (appearanceInHamProbability.containsKey(key)) {
 
                 probability = appearanceInSpamProbability.get(key) / (appearanceInHamProbability.get(key) + appearanceInSpamProbability.get(key));
+
+
+
+
             }
 
             if (probability == 1.0) probability = 0.999;
+
+            //Extra formula that makes low frequency words from the training phase have less impact.
+            probability = ((3 * 0.5) + (trainSpamFrequency.get(key) * probability)) / (3 + trainSpamFrequency.get(key));
+
 
             //Add new probability
             newProbabilityMap.put(key, probability);
         }
 
-
-        //Next iterate through all ham words that there are no spam words for.
-
-        keys = appearanceInHamProbability.keySet();
-        keyIterator = keys.iterator();
-
-        while (keyIterator.hasNext()) {
-            String key = keyIterator.next();
-
-            //If there is no spam for the word, then its got a spam probability of ~0.
-            if (!appearanceInSpamProbability.containsKey(key)) {
-
-
-                //Add new probability
-                newProbabilityMap.put(key, 0.00001);
-
-            }
-
-        }
 
         return newProbabilityMap;
     }
@@ -280,7 +270,7 @@ public class Main extends Application {
 
     }
 
-    //Reads all files in a directory. Also can return a map
+    //Reads all files in a directory.
     public Map<String, Integer> countWords(String path, int category)
     {
 
@@ -288,8 +278,16 @@ public class Main extends Application {
 
 
 
+
         WordCounter wordCounter = new WordCounter();
         File dataDir = new File(path);
+
+        //Special case for second ham folder where the current ham frequency is sent to the counter, so both folders word frequencies get added together.
+        if (category == -1)
+        {
+            wordCounter.setWordCounts(trainHamFrequency);
+            category = 0;
+        }
 
         //Try to read all the files of the given directory.
         try {

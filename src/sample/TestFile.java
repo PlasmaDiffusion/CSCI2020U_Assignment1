@@ -64,35 +64,39 @@ public class TestFile {
         Set<String> keys = wordCountMap.keySet();
         Iterator<String> keyIterator = keys.iterator();
 
-        //wordCounter.outputWordCounts(2, new File("src/sample/data/outputFiles/test"));
         //Iterate through every word in the file and increase spam likeliness based on spam word probability from the training phase.
         while (keyIterator.hasNext()) {
             String key = keyIterator.next();
+
+
+            //Ignore common words
+            if(key == "the" || key == "The" || key == "A" || key == "a" || key == "is" || key == "some" || key == "this" || key == "has" || key == "I") continue;
 
             //Check if the word exists in the spam map. If it does, n will change.
             if (spamWordMap.containsKey(key)) {
 
                 double wordProbability = spamWordMap.get(key);
 
+
+
                 //Avoid log of 0
                 if(wordProbability != 0 && wordProbability != 1)
                 n+= (Math.log(1 - wordProbability) - Math.log(wordProbability));
 
-                System.out.println("Probability: " + wordProbability);
+
+                /*System.out.println("Probability: " + wordProbability);
 
                 System.out.println("Adding: ");
 
                 System.out.println(Math.log(1 - spamWordMap.get(key)) - Math.log(spamWordMap.get(key)));
 
-                System.out.println("New n :" + n);
+                System.out.println("New n :" + n);*/
             }
         }
 
         //Set file spam probability
         spamProbability = (double)1 / (1+ Math.pow(Math.E, n));
 
-
-        if (Double.isNaN(spamProbability)) spamProbability = 0.0f;
 
 
        probabilityString = getSpamProbRounded();

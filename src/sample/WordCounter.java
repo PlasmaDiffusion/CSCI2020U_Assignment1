@@ -7,6 +7,8 @@ import java.util.*;
 
 public class WordCounter {
 
+
+
     private Map<String,Integer> wordCounts;
 
     private int fileCount;
@@ -24,6 +26,10 @@ public class WordCounter {
 
     public Map<String, Integer> getWordCountsMap() {
         return wordCounts;
+    }
+
+    public void setWordCounts(Map<String, Integer> wordCounts) {
+        this.wordCounts = wordCounts;
     }
 
     public int getFileCount()
