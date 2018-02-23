@@ -1,0 +1,10 @@
+Repository Link: https://github.com/PlasmaDiffusion/CSCI2020U_Assignment1
+
+
+To compile the project, open in from the Assignment1 folder in javaFX.
+The test and training folders used to make this assignment are already packaged with it (see the data folder).
+
+
+Enhancements:
+-a formula that reduces the importance for rare words (from a section in the Naive Bayes spam filtering wikipedia page)
+-common basic words are ignored in the final spam file probability
