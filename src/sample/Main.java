@@ -122,7 +122,7 @@ public class Main extends Application {
         gridPane.add(nameText2, 0, 2);
         gridPane.add(precisionText, 1, 2);
 
-        primaryStage.setScene(new Scene(gridPane, 800, 675));
+        primaryStage.setScene(new Scene(gridPane, 850, 675));
         primaryStage.show();
 
 
