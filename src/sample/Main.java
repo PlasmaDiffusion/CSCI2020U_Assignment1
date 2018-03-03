@@ -110,7 +110,7 @@ public class Main extends Application {
         Label accuracyText = new Label(Float.toString(accuracy));
 
 
-        gridPane.add(testTable, 0, 0);
+        gridPane.add(testTable, 1, 0);
         gridPane.add(nameText, 0, 1);
         gridPane.add(accuracyText, 1, 1);
 
